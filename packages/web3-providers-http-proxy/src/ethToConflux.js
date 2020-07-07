@@ -34,16 +34,18 @@ const bridge = {
       return params;
     }
   },
-  eth_sendRawTransaction: {
-    method: "cfx_sendRawTransaction"
-  },
-  eth_getBalance: {
-    method: "cfx_getBalance",
+
+  eth_getBlockByNumber: {
+    method: "cfx_getBlockByEpochNumber",
     input: function (params) {
-      mapParamsTagAtIndex(params, 1);
+      console.log("cfx_getBlockByEpochNumber params:", params);
+      if (params.length > 0) {
+        params[0] = tagMapper[params[0]] || params[0];
+      }
       return params;
-    }
+    },
   },
+
   eth_call: {
     method: "cfx_call",
     input: formatInput
@@ -61,6 +63,7 @@ const bridge = {
       return params;
     }
   },
+
   eth_getCode: {
     method: "cfx_getCode",
     input: function (params) {
@@ -75,6 +78,7 @@ const bridge = {
       return response;
     }
   },
+
   eth_estimateGas: {
     method: "cfx_estimateGasAndCollateral",
     input: formatInput,
@@ -85,22 +89,27 @@ const bridge = {
       return response;
     }
   },
+
   eth_sendTransaction: {
     method: "send_transaction",
     // todo: set storagelimit and gas
     input: function (params) {
       if (params.length > 0) {
-        params[0].gasPrice = params[0].gasPrice || "0x" + (1e9).toString(16);
-        params[0].gas = params[0].gas || "0x1000000";
-        params[0].storageLimit = params[0].storageLimit || "0x1000000";
+        const txInput = params[0];
+        txInput.gasPrice = txInput.gasPrice || "0x" + (1e9).toString(16);
+        txInput.gas = txInput.gas || "0x1000000";
+        // TODO：must get by estimate or throw error, because the default value will be set to 0xfffffffffffff, it must lead to fail.
+        txInput.storageLimit = txInput.storageLimit || "0x100";
+
         // simple handle
-        if (params[0].to) {
-          params[0].to = "0x1" + params[0].to.slice(3);
+        if (txInput.to) {
+          txInput.to = "0x1" + txInput.to.slice(3);
         }
-        if (params[0].data) {
-          let len = params[0].data.length;
+        if (txInput.data) {
+          let len = txInput.data.length;
           len = (len - 6) % 32;
-          if (len == 0) params[0].to[2] = "0x8" + params[0].to.slice(3);
+          if (len == 0)
+            txInput.to[2] = "0x8" + txInput.to.slice(3);
         }
       }
       if (params.length == 1) {
@@ -151,6 +160,37 @@ const bridge = {
         response.result = response.result.chain_id;
       return response;
     }
+  },
+  eth_sendRawTransaction: {
+    method: "cfx_sendRawTransaction",
+  },
+
+  eth_getTransactionReceipt: {
+    method: "cfx_getTransactionReceipt",
+    output: function (response) {
+      if (response && response.result) {
+        txReceipt = response.result;
+        txReceipt.contractAddress = txReceipt.contractCreated;
+        txReceipt.blockNumber = txReceipt.epochNumber;
+        txReceipt.transactionIndex = txReceipt.index;
+        txReceipt.status = txReceipt.outcomeStatus === 0 ? 1 : 0; // conflux和以太坊状态相反
+        // txReceipt.gasUsed = `0x${txReceipt.gasUsed.toString(16)}`;
+      }
+      return response;
+    }
+  },
+
+  eth_getLogs: {
+    method: "cfx_getLogs",
+    input: function (params) {
+      if (params.length > 0) {
+        let fromBlock = params[0].fromBlock;
+        let toBlock = params[0].toBlock;
+        params[0].fromEpoch = mapTag(fromBlock);
+        params[0].toEpoch = mapTag(toBlock);
+      }
+      return params;
+    }
   }
   // eth_sign: {
   //   method: 'sign'
@@ -197,13 +237,13 @@ function mapParamsTagAtIndex(params, index) {
 }
 
 function ethToConflux(payload) {
+  // eslint-disable-next-line no-unused-vars
   const oldMethod = payload.method;
   const handler = bridge[payload.method];
   debug(`Mapping "${oldMethod}" to "${handler && handler.method}"`);
   if (!handler) {
     return emptyFn;
   }
-  
 
   let inputFn = handler.input || emptyFn;
   payload.params = inputFn(payload.params);

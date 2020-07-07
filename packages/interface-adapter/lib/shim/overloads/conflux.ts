@@ -125,7 +125,7 @@ const overrides = {
         txReceipt.transactionIndex = txReceipt.index;
         // @ts-ignore
         txReceipt.status = txReceipt.outcomeStatus === 0 ? 1 : 0; // conflux和以太坊状态相反
-        txReceipt.gasUsed = `0x${txReceipt.gasUsed.toString(16)}`;
+        // txReceipt.gasUsed = `0x${txReceipt.gasUsed.toString(16)}`;
       }
       return Promise.resolve(txReceipt);
     };
