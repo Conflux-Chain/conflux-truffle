@@ -35,17 +35,6 @@ const bridge = {
     }
   },
 
-  eth_getBlockByNumber: {
-    method: "cfx_getBlockByEpochNumber",
-    input: function (params) {
-      console.log("cfx_getBlockByEpochNumber params:", params);
-      if (params.length > 0) {
-        params[0] = tagMapper[params[0]] || params[0];
-      }
-      return params;
-    },
-  },
-
   eth_call: {
     method: "cfx_call",
     input: formatInput
