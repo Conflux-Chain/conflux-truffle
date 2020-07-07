@@ -29,7 +29,7 @@ function formatInput(params) {
 const bridge = {
   eth_blockNumber: {
     method: "cfx_epochNumber",
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 0);
       return params;
     }
@@ -39,7 +39,7 @@ const bridge = {
   },
   eth_getBalance: {
     method: "cfx_getBalance",
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 1);
       return params;
     }
@@ -56,18 +56,18 @@ const bridge = {
   },
   eth_getTransactionCount: {
     method: "cfx_getNextNonce", // NOT right
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 1);
       return params;
     }
   },
   eth_getCode: {
     method: "cfx_getCode",
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 1);
       return params;
     },
-    output: function(response) {
+    output: function (response) {
       if (response && response.error && response.error.code == -32016) {
         response.error = null;
         response.result = "0x";
@@ -78,7 +78,7 @@ const bridge = {
   eth_estimateGas: {
     method: "cfx_estimateGasAndCollateral",
     input: formatInput,
-    output: function(response) {
+    output: function (response) {
       if (response && response.result && response.result.gasUsed) {
         response.result = response.result.gasUsed;
       }
@@ -88,7 +88,7 @@ const bridge = {
   eth_sendTransaction: {
     method: "send_transaction",
     // todo: set storagelimit and gas
-    input: function(params) {
+    input: function (params) {
       if (params.length > 0) {
         params[0].gasPrice = params[0].gasPrice || "0x" + (1e9).toString(16);
         params[0].gas = params[0].gas || "0x1000000";
@@ -111,32 +111,32 @@ const bridge = {
   },
   eth_getStorageAt: {
     method: "cfx_getStorageAt",
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 2);
       return params;
     }
   },
   eth_getBlockByHash: {
     method: "cfx_getBlockByHash",
-    output: function(response) {
+    output: function (response) {
       formatBlock(response.result);
       return response;
     }
   },
   eth_getBlockByNumber: {
     method: "cfx_getBlockByEpochNumber",
-    input: function(params) {
+    input: function (params) {
       mapParamsTagAtIndex(params, 0);
       return params;
     },
-    output: function(response) {
+    output: function (response) {
       formatBlock(response.result);
       return response;
     }
   },
   eth_getTransactionByHash: {
     method: "cfx_getTransactionByHash",
-    output: function(response) {
+    output: function (response) {
       formatTx(response.result);
       return response;
     }
@@ -146,8 +146,9 @@ const bridge = {
   },
   eth_chainId: {
     method: "cfx_getStatus",
-    output: function(response) {
-      response.result = response.result.chain_id;
+    output: function (response) {
+      if (response.result && response.result.chain_id)
+        response.result = response.result.chain_id;
       return response;
     }
   }
@@ -198,10 +199,11 @@ function mapParamsTagAtIndex(params, index) {
 function ethToConflux(payload) {
   const oldMethod = payload.method;
   const handler = bridge[payload.method];
+  debug(`Mapping "${oldMethod}" to "${handler && handler.method}"`);
   if (!handler) {
     return emptyFn;
   }
-  debug(`Mapping "${oldMethod}" to "${handler.method}"`);
+  
 
   let inputFn = handler.input || emptyFn;
   payload.params = inputFn(payload.params);
