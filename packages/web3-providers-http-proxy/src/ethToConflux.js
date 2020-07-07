@@ -35,6 +35,14 @@ const bridge = {
     }
   },
 
+  eth_getBalance: {
+    method: "cfx_getBalance",
+    input: function (params) {
+      mapParamsTagAtIndex(params, 1);
+      return params;
+    }
+  },
+
   eth_call: {
     method: "cfx_call",
     input: formatInput
