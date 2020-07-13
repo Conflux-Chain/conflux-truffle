@@ -1,6 +1,7 @@
 const Web3HttpProvider = require("web3-providers-http");
 const defaultAdaptor = require("./util").defaultAdaptor;
 const ethToConflux = require("./ethToConflux");
+const debug = require("debug")("provider-proxy");
 
 class Web3HttpProviderProxy extends Web3HttpProvider {
   constructor(host, options) {
@@ -17,13 +18,13 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
 
     function execute(_adapted) {
       supersend(_adapted.adaptedPayload, function(err, result) {
-        // console.log(`Send RPC:`, _adapted.adaptedPayload);
+        debug(`Send RPC:`, _adapted.adaptedPayload);
         if (err) {
           callback(err);
         } else {
-          // let adaptorResult = _modified.outputFn(result);
-          // console.log("adaptor rpc response:", adaptorResult);
-          callback(null, _adapted.adaptedOutputFn(result));
+          let adaptorResult = _adapted.adaptedOutputFn(result);
+          debug("adaptor rpc response:", adaptorResult);
+          callback(null, adaptorResult);
         }
       });
     }
