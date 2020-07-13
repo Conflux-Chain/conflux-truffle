@@ -17,7 +17,7 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
 
     function execute(_adapted) {
       supersend(_adapted.adaptedPayload, function(err, result) {
-        console.trace(`Send RPC:`, _adapted.adaptedPayload);
+        // console.log(`Send RPC:`, _adapted.adaptedPayload);
         if (err) {
           callback(err);
         } else {

@@ -109,7 +109,6 @@ const bridge = {
     },
 
     input: async function(params) {
-      console.log("adapt input for eth_sendTransaction");
       if (params.length > 0) {
         const txInput = params[0];
 
@@ -377,7 +376,7 @@ function ethToConflux(options) {
     const handler = bridge[newPayload.method];
 
     if (!handler) {
-      console.log(`Mapping "${oldMethod}" to nothing`);
+      debug(`Mapping "${oldMethod}" to nothing`);
       return {
         adaptedOutputFn: emptyFn,
         adaptedPayload: newPayload
@@ -390,8 +389,7 @@ function ethToConflux(options) {
         handler.method(newPayload.params)) ||
       handler.method;
     newPayload.params = await inputFn(newPayload.params);
-    console.log(`Mapping "${oldMethod}" to "${newPayload.method}"`);
-    // console.log("cfx payload:", payload);
+    debug(`Mapping "${oldMethod}" to "${newPayload.method}"`);
     return {
       adaptedOutputFn: handler.output || emptyFn,
       adaptedPayload: newPayload
