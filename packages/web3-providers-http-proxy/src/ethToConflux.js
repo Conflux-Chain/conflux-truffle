@@ -1,5 +1,6 @@
 const { emptyFn, numToHex } = require("./util");
 const debug = require("debug")("ethToConflux");
+const { Account, Conflux } = require("js-conflux-sdk");
 
 // TODO MAP latest_checkpoint
 const TAG_MAP = {
@@ -8,6 +9,10 @@ const TAG_MAP = {
   pending: "latest_state"
 };
 const DEFAULT_PASSWORD = "123456";
+
+let cfx = undefined;
+const accountAddresses = [];
+const accounts = {};
 
 function formatInput(params) {
   // 1. add nonce parameter to tx object
@@ -47,12 +52,20 @@ const bridge = {
     method: "cfx_call",
     input: formatInput
   },
+
   eth_gasPrice: {
     method: "cfx_gasPrice"
   },
+
   eth_accounts: {
-    method: "accounts"
+    method: "accounts",
+    output: function(response) {
+      if (accountAddresses && accountAddresses.length > 0)
+        response.result = Object.keys(accounts);
+      return response;
+    }
   },
+
   eth_getTransactionCount: {
     method: "cfx_getNextNonce", // NOT right
     input: function(params) {
@@ -88,17 +101,19 @@ const bridge = {
   },
 
   eth_sendTransaction: {
-    method: "send_transaction",
-    // todo: set storagelimit and gas
-    input: function(params) {
+    method: function(params) {
+      if (params.length && accounts[params[0].from]) {
+        return "cfx_sendRawTransaction";
+      }
+      return "send_transaction";
+    },
+
+    input: async function(params) {
+      console.log("adapt input for eth_sendTransaction");
       if (params.length > 0) {
         const txInput = params[0];
-        txInput.gasPrice = txInput.gasPrice || "0x" + (1e9).toString(16);
-        txInput.gas = txInput.gas || "0x1000000";
-        // TODO：must get by estimate or throw error, because the default value will be set to 0xfffffffffffff, it must lead to fail.
-        txInput.storageLimit = txInput.storageLimit || "0x100";
 
-        // simple handle
+        // simple handle txInput.to
         if (txInput.to) {
           txInput.to = "0x1" + txInput.to.slice(3);
         }
@@ -107,13 +122,20 @@ const bridge = {
           len = (len - 6) % 32;
           if (len == 0) txInput.to = "0x8" + txInput.to.slice(3);
         }
+
+        if (accounts[txInput.from]) {
+          await formatTxInput.bind(cfx)(txInput);
+          let signedTx = accounts[txInput.from].signTransaction(txInput);
+          params[0] = "0x" + signedTx.encode(true).toString("hex");
+        } else if (params.length == 1) {
+          params.push(DEFAULT_PASSWORD);
+        }
       }
-      if (params.length == 1) {
-        params.push(DEFAULT_PASSWORD);
-      }
+
       return params;
     }
   },
+
   eth_getStorageAt: {
     method: "cfx_getStorageAt",
     input: function(params) {
@@ -121,6 +143,7 @@ const bridge = {
       return params;
     }
   },
+
   eth_getBlockByHash: {
     method: "cfx_getBlockByHash",
     output: function(response) {
@@ -128,6 +151,7 @@ const bridge = {
       return response;
     }
   },
+
   eth_getBlockByNumber: {
     method: "cfx_getBlockByEpochNumber",
     input: function(params) {
@@ -139,6 +163,7 @@ const bridge = {
       return response;
     }
   },
+
   eth_getTransactionByHash: {
     method: "cfx_getTransactionByHash",
     output: function(response) {
@@ -146,17 +171,25 @@ const bridge = {
       return response;
     }
   },
+
   web3_clientVersion: {
     method: "cfx_clientVersion"
   },
+
   eth_chainId: {
     method: "cfx_getStatus",
     output: function(response) {
+      // return hardcode due to not support yet.
+      response.result = 1592304361448;
+      response.error = undefined;
+      return response;
+
       if (response.result && response.result.chain_id)
         response.result = response.result.chain_id;
       return response;
     }
   },
+
   eth_sendRawTransaction: {
     method: "cfx_sendRawTransaction"
   },
@@ -188,10 +221,62 @@ const bridge = {
       return params;
     }
   }
+
   // eth_sign: {
   //   method: 'sign'
   // }
 };
+
+bridge["net_version"] = bridge.eth_chainId;
+
+async function formatTxInput(options) {
+  // console.log("this of formatTxInput:", this);
+  if (options.nonce === undefined) {
+    options.nonce = await this.getNextNonce(options.from);
+  }
+
+  if (options.gasPrice === undefined) {
+    options.gasPrice = this.defaultGasPrice;
+  }
+  if (options.gasPrice === undefined) {
+    options.gasPrice = (await this.getGasPrice()) || 1; // MIN_GAS_PRICE
+  }
+
+  if (options.gas === undefined) {
+    options.gas = this.defaultGas;
+  }
+
+  if (options.storageLimit === undefined) {
+    options.storageLimit = this.defaultStorageLimit;
+  }
+
+  if (options.gas === undefined || options.storageLimit === undefined) {
+    const {
+      gasUsed,
+      storageCollateralized
+    } = await this.estimateGasAndCollateral(options);
+
+    if (options.gas === undefined) {
+      options.gas = gasUsed;
+    }
+
+    if (options.storageLimit === undefined) {
+      options.storageLimit = storageCollateralized;
+    }
+  }
+
+  if (options.epochHeight === undefined) {
+    options.epochHeight = await this.getEpochNumber();
+  }
+
+  if (options.chainId === undefined) {
+    options.chainId = this.defaultChainId;
+  }
+  if (options.chainId === undefined) {
+    const status = await this.getStatus();
+    options.chainId = status.chainId;
+  }
+}
 
 function formatBlock(block) {
   block.number = block.epochNumber;
@@ -232,20 +317,86 @@ function mapParamsTagAtIndex(params, index) {
   }
 }
 
-function ethToConflux(payload) {
-  // eslint-disable-next-line no-unused-vars
-  const oldMethod = payload.method;
-  const handler = bridge[payload.method];
-  debug(`Mapping "${oldMethod}" to "${handler && handler.method}"`);
-  if (!handler) {
-    return emptyFn;
+function setAccounts(privateKeys) {
+  if (!privateKeys) return;
+
+  if (typeof privateKeys == "string") {
+    privateKeys = [privateKeys];
   }
 
-  let inputFn = handler.input || emptyFn;
-  payload.params = inputFn(payload.params);
-  payload.method = handler.method;
-  debug("cfx payload:", payload);
-  return handler.output || emptyFn;
+  privateKeys
+    .map(key => {
+      let account = new Account(key);
+      accountAddresses.push(account.toString());
+      return account;
+    })
+    .map(account => (accounts[account.toString()] = account));
+}
+
+function setHost(host) {
+  // console.log("set host:", host);
+  cfx = new Conflux({
+    url: host
+  });
+}
+
+function deepClone(obj, hash = new WeakMap()) {
+  if (Object(obj) !== obj) return obj; // primitives
+  if (hash.has(obj)) return hash.get(obj); // cyclic reference
+  const result =
+    obj instanceof Set
+      ? new Set(obj) // See note about this!
+      : obj instanceof Map
+        ? new Map(Array.from(obj, ([key, val]) => [key, deepClone(val, hash)]))
+        : obj instanceof Date
+          ? new Date(obj)
+          : obj instanceof RegExp
+            ? new RegExp(obj.source, obj.flags)
+            : // ... add here any specific treatment for other classes ...
+              // and finally a catch-all:
+              obj.constructor
+              ? new obj.constructor()
+              : Object.create(null);
+  hash.set(obj, result);
+  return Object.assign(
+    result,
+    ...Object.keys(obj).map(key => ({ [key]: deepClone(obj[key], hash) }))
+  );
+}
+
+function ethToConflux(options) {
+  // it's better to use class
+  setHost(options.url || `http://${options.host}:${options.port}`);
+  setAccounts(options.privateKeys);
+
+  return async function(payload) {
+    // clone new one to avoid change old payload
+    const newPayload = deepClone(payload);
+    // eslint-disable-next-line no-unused-vars
+    const oldMethod = newPayload.method;
+    const handler = bridge[newPayload.method];
+
+    if (!handler) {
+      console.log(`Mapping "${oldMethod}" to nothing`);
+      return {
+        adaptedOutputFn: emptyFn,
+        adaptedPayload: newPayload
+      };
+    }
+
+    let inputFn = handler.input || emptyFn;
+    newPayload.method =
+      (typeof handler.method == "function" &&
+        handler.method(newPayload.params)) ||
+      handler.method;
+    newPayload.params = await inputFn(newPayload.params);
+    console.log(`Mapping "${oldMethod}" to "${newPayload.method}"`);
+    // console.log("cfx payload:", payload);
+    return {
+      adaptedOutputFn: handler.output || emptyFn,
+      adaptedPayload: newPayload
+    };
+  };
 }
 
 module.exports = ethToConflux;
