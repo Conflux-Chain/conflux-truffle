@@ -1,6 +1,6 @@
 const { emptyFn, numToHex, deepClone, setNull, delKeys } = require("./util");
 const debug = require("debug")("ethToConflux");
-const { Account, Conflux, util } = require("js-conflux-sdk");
+const { PrivateKeyAccount, Conflux, format } = require("js-conflux-sdk");
 
 // TODO MAP latest_checkpoint
 const EPOCH_MAP = {
@@ -11,7 +11,7 @@ const EPOCH_MAP = {
 // const DEFAULT_PASSWORD = "123456";
 
 let cfx = undefined;
-const checksumAddress = util.sign.checksumAddress;
+const checksumAddress = emptyFn;
 const accountAddresses = [];
 const accounts = {};
 
@@ -108,7 +108,7 @@ const bridge = {
         params[0] = await formatTxInput.bind(cfx)(txInput);
         debug("formated inputTx:", params[0]);
         if (from) {
-          let signedTx = from.signTransaction(params[0]);
+          let signedTx = await from.signTransaction(params[0]);
           params[0] = "0x" + signedTx.encode(true).toString("hex");
         }
         // else if (params.length == 1) {
@@ -271,8 +271,11 @@ const bridge = {
 };
 function ethToConflux(options) {
   // it's better to use class
-  setHost(options.url || `http://${options.host}:${options.port}`);
-  setAccounts(options.privateKeys);
+  setHost(options.url || `http://${options.host}:${options.port}`).then(
+    async () => {
+      setAccounts(options.privateKeys, cfx.networkId);
+    }
+  );
 
   adaptor = async function(payload) {
     // clone new one to avoid change old payload
@@ -392,15 +395,6 @@ function formatBlock(block) {
 }
 
 async function formatTxInput(options) {
-  // simple handle to
-  // if (options.to) {
-  //   options.to = "0x1" + options.to.slice(3);
-  // }
-  // if (options.data) {
-  //   let len = options.data.length;
-  //   len = (len - 6) % 32;
-  //   if (len == 0) options.to = "0x8" + options.to.slice(3);
-  // }
   if (options.value === undefined) {
     options.value = "0x0";
   }
@@ -455,7 +449,7 @@ async function formatTxInput(options) {
 
   const forCfxSendTransaction = !getAccount(options.from);
   if (forCfxSendTransaction) {
-    options = util.format.sendTx(options);
+    options = format.callTx(options);
   }
   return options;
 }
@@ -470,7 +464,7 @@ function mapParamsTagAtIndex(params, index) {
   }
 }
 
-function setAccounts(privateKeys) {
+function setAccounts(privateKeys, networkId) {
   if (!privateKeys) return;
 
   if (typeof privateKeys == "string") {
@@ -478,7 +472,8 @@ function setAccounts(privateKeys) {
   }
 
   privateKeys.forEach(key => {
-    const account = new Account(key);
+    // console.log("cfx networkId:", networkId)
+    const account = new PrivateKeyAccount(key, networkId);
     const checksumed = checksumAddress(account.address);
     if (accountAddresses.indexOf(checksumed) < 0) {
       accountAddresses.push(checksumed);
@@ -491,9 +486,12 @@ function getAccount(address) {
   return accounts[address.toLowerCase(address)];
 }
 
-function setHost(host) {
+async function setHost(host) {
   // debug("set host:", host);
   cfx = new Conflux({
     url: host
+    // logger:console
   });
+  let { networkId } = await cfx.getStatus();
+  cfx.networkId = networkId;
 }

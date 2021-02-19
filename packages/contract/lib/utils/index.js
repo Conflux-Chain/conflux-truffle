@@ -5,6 +5,7 @@ const abi = require("web3-eth-abi");
 const BlockchainUtils = require("@truffle/blockchain-utils");
 const reformat = require("../reformat");
 const ens = require("./ens");
+const { format } = require("js-conflux-sdk");
 
 const Utils = {
   is_object(val) {
@@ -324,6 +325,34 @@ const Utils = {
     // network unknown, trust the provider and use given chainNetworkID
     TruffleContractInstance.setNetwork(chainNetworkID);
     return { id: TruffleContractInstance.network_id, blockLimit: gasLimit };
+  },
+
+  formatHexAddress(args) {
+    debug("format hex address:", typeof args, args);
+    if (typeof args === "string") return formatOne(args);
+
+    if (Array.isArray(args)) {
+      for (let i in args) {
+        args[i] = formatOne(args[i]);
+      }
+      return args;
+    }
+
+    return args;
+
+    function formatOne(cfxAddr) {
+      debug("cfxAddr type:", typeof cfxAddr);
+      if (typeof cfxAddr != "string") return cfxAddr;
+      let lowerArg = cfxAddr.toLowerCase();
+      debug("cfxAddr lower:", lowerArg);
+      if (lowerArg.startsWith("cfx") || lowerArg.startsWith("net")) {
+        debug("format to hex address:", cfxAddr);
+        let hexAddr = format.hexAddress(cfxAddr);
+        debug("formated hex address", hexAddr);
+        return hexAddr;
+      }
+      return cfxAddr;
+    }
   }
 };
 

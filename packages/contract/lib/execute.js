@@ -128,6 +128,7 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, args)
         .then(async ({ args, params }) => {
+          args = utils.formatHexAddress(args);
           let result;
 
           params.to = address;
@@ -171,6 +172,7 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, arguments)
         .then(async ({ args, params, network }) => {
+          args = utils.formatHexAddress(args);
           const context = {
             contract: constructor, // Can't name this field `constructor` or `_constructor`
             promiEvent: promiEvent,
@@ -231,6 +233,7 @@ const execute = {
       execute
         .prepareCall(constructor, constructorABI, arguments)
         .then(async ({ args, params, network }) => {
+          args = utils.formatHexAddress(args);
           const { blockLimit } = network;
 
           utils.checkLibraries.apply(constructor);
@@ -504,8 +507,9 @@ const execute = {
     debug("executing manually!");
     const send = rpc =>
       new Promise((accept, reject) =>
-        web3.currentProvider.send(rpc, (err, result) =>
-          err ? reject(err) : accept(result)
+        web3.currentProvider.send(
+          rpc,
+          (err, result) => (err ? reject(err) : accept(result))
         )
       );
 
@@ -533,9 +537,10 @@ const execute = {
     const account = web3.eth.accounts.wallet[transaction.from];
     let rpcPromise;
     if (account) {
-      const rawTx = (
-        await web3.eth.accounts.sign(transaction, account.privateKey)
-      ).rawTransaction;
+      const rawTx = (await web3.eth.accounts.sign(
+        transaction,
+        account.privateKey
+      )).rawTransaction;
       rpcPromise = send({
         jsonrpc: "2.0",
         id: Date.now(),

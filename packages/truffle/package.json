@@ -13,7 +13,7 @@
   },
   "scripts": {
     "analyze": "./scripts/analyze.sh",
-    "build": "yarn build-cli",
+    "build": "yarn build-cli && node ./scripts/amendForBase32.js",
     "build-cli": "webpack --config ./webpack.config.js",
     "postinstall": "node ./scripts/postinstall.js",
     "prepare": "yarn build",

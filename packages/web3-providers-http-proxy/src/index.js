@@ -23,6 +23,7 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
         )}`;
         result.error.message += errData ? `\n> error data: ${errData}` : "";
       }
+      if (err) debug("error:", err.stack);
       callback(err, result);
     };
 

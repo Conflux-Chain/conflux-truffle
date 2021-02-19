@@ -41,8 +41,8 @@ listeners.forEach(listener => process.removeListener("warning", listener));
 let options = { logger: console };
 
 const inputArguments = process.argv.slice(2);
-const userWantsGeneralHelp = 
-  inputArguments.length === 1 && ['help', '--help'].includes(inputArguments[0]);
+const userWantsGeneralHelp =
+  inputArguments.length === 1 && ["help", "--help"].includes(inputArguments[0]);
 
 if (userWantsGeneralHelp) {
   command.displayGeneralHelp();
@@ -105,3 +105,12 @@ command.run(inputArguments, options, function(err) {
   }
   process.exit(0);
 });
+
+process
+  .on("unhandledRejection", (reason, p) => {
+    console.error(reason, "Unhandled Rejection at Promise", p);
+  })
+  .on("uncaughtException", err => {
+    console.error(err, "Uncaught Exception thrown");
+    process.exit(1);
+  });

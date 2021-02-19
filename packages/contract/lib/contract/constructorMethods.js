@@ -5,7 +5,6 @@ const {
 const utils = require("../utils");
 const execute = require("../execute");
 const bootstrap = require("./bootstrap");
-const debug = require("debug")("contract:contract:constructorMethods");
 
 module.exports = Contract => ({
   configureNetwork({ networkType, provider } = {}) {
@@ -46,10 +45,10 @@ module.exports = Contract => ({
     if (!this.bytecode || this.bytecode === "0x") {
       throw new Error(
         `${
-        this.contractName
+          this.contractName
         } error: contract binary not set. Can't deploy new instance.\n` +
-        `This contract may be abstract, not implement an abstract parent's methods completely\n` +
-        `or not invoke an inherited contract's constructor correctly\n`
+          `This contract may be abstract, not implement an abstract parent's methods completely\n` +
+          `or not invoke an inherited contract's constructor correctly\n`
       );
     }
 
@@ -164,7 +163,10 @@ module.exports = Contract => ({
         throw new Error("Cannot link contract without an address.");
       }
 
-      this.link(contract.contractName, contract.address);
+      this.link(
+        contract.contractName,
+        utils.formatHexAddress(contract.address)
+      );
 
       // Merge events so this contract knows about library's events
       Object.keys(contract.events).forEach(topic => {
