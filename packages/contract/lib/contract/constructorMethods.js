@@ -5,6 +5,7 @@ const {
 const utils = require("../utils");
 const execute = require("../execute");
 const bootstrap = require("./bootstrap");
+const { format } = require("web3-providers-http-proxy");
 
 module.exports = Contract => ({
   configureNetwork({ networkType, provider } = {}) {
@@ -165,7 +166,7 @@ module.exports = Contract => ({
 
       this.link(
         contract.contractName,
-        utils.formatHexAddress(contract.address)
+        format.formatHexAddress(contract.address)
       );
 
       // Merge events so this contract knows about library's events
@@ -205,6 +206,7 @@ module.exports = Contract => ({
 
     const temp = function TruffleContract() {
       this.constructor = temp;
+      format.deepFormatHexAddress(arguments);
       return Contract.apply(this, arguments);
     };
 

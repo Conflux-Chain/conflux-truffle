@@ -4,17 +4,20 @@
   "description": "",
   "main": "./src/index.js",
   "scripts": {
-    "test": "mocha ./test/cfx.js"
+    "test": "mocha ./test/cfx.js",
+    "testformat": "mocha ./test/format.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "deasync": "^0.1.21",
     "debug": "^4.1.1",
+    "js-conflux-sdk": "^1.5.11",
+    "object-hash": "^2.1.1",
     "web3-core-helpers": "^1.2.9",
     "web3-providers-http": "^1.2.9",
-    "xhr2-cookies": "^1.1.0",
-    "js-conflux-sdk": "^1.5.11"
+    "xhr2-cookies": "^1.1.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",

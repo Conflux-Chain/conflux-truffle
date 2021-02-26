@@ -12,6 +12,8 @@ const TruffleError = require("@truffle/error");
 const fse = require("fs-extra");
 const path = require("path");
 const EventEmitter = require("events");
+const { format } = require("web3-providers-http-proxy");
+var util = require("util");
 
 const processInput = input => {
   const inputComponents = input.trim().split(" ");
@@ -21,6 +23,11 @@ const processInput = input => {
     return inputComponents.slice(1).join(" ");
   }
   return input.trim();
+};
+
+const writer = function(obj) {
+  obj = format.deepFormatAddress(obj, this.web3.cfx.networkId);
+  return util.inspect(obj);
 };
 
 class Console extends EventEmitter {
@@ -84,7 +91,8 @@ class Console extends EventEmitter {
             accounts: fetchedAccounts
           },
           interpreter: this.interpret.bind(this),
-          done: callback
+          done: callback,
+          writer: writer.bind(this)
         });
 
         this.resetContractsInConsoleContext(abstractions);

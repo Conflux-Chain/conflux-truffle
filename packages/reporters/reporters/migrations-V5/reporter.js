@@ -5,7 +5,7 @@ const ora = require("ora");
 
 const indentedSpinner = require("./indentedSpinner");
 const MigrationsMessages = require("./messages");
-
+const { format, confluxUtil } = require("web3-providers-http-proxy");
 /**
  *  Reporter consumed by a migrations sequence which iteself consumes a series of Migration and
  *  Deployer instances that emit both async `Emittery` events and conventional EventEmitter
@@ -48,6 +48,7 @@ class Reporter {
    */
   setMigrator(migrator) {
     this.migrator = migrator;
+    this.wrapLogger(this.migrator);
   }
 
   /**
@@ -64,8 +65,22 @@ class Reporter {
    */
   setDeployer(deployer) {
     this.deployer = deployer;
+    this.wrapLogger(this.deployer);
   }
 
+  async wrapLogger(host) {
+    if (host.logger && host.logger.log) {
+      let oldLog = host.logger.log;
+      let networkId = await confluxUtil.detectNetworkId();
+      // console.log("wrapLogger config.networkId"+networkId);
+      host.logger.log = function(data) {
+        debug("logger.log", data);
+        data = format.deepFormatAddress(data, networkId);
+        data = format.repleacEthKeywords(data);
+        oldLog(data);
+      };
+    }
+  }
   /**
    * Registers emitter handlers for the migrator
    */

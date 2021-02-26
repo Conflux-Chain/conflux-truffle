@@ -2,6 +2,7 @@ var repl = require("repl");
 var expect = require("@truffle/expect");
 var EventEmitter = require("events");
 var inherits = require("util").inherits;
+var util = require("util");
 
 inherits(ReplManager, EventEmitter);
 
@@ -41,7 +42,8 @@ ReplManager.prototype.start = function(options) {
   if (!this.repl) {
     this.repl = repl.start({
       prompt: currentContext.prompt,
-      eval: this.interpret.bind(this)
+      eval: this.interpret.bind(this),
+      writer: options.writer || util.inspect
     });
 
     this.repl.on("exit", async function() {

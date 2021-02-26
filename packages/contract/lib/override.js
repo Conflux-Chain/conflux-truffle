@@ -44,6 +44,7 @@ const override = {
       // We might have been routed here in web3 >= beta.34 by their own status check
       // error. We want to extract the receipt, emit a receipt event
       // and reject it ourselves.
+      console.trace("start web3Error.message", web3Error.message);
       const receipt = override.extractReceipt(web3Error.message);
       if (receipt) {
         await handlers.receipt(context, receipt);

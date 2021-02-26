@@ -2,6 +2,8 @@ const Web3HttpProvider = require("web3-providers-http");
 const defaultAdaptor = require("./util").defaultAdaptor;
 const ethToConflux = require("./ethToConflux");
 const debug = require("debug")("provider-proxy");
+const format = require("./format");
+const confluxUtil = require("./confluxUtil");
 
 class Web3HttpProviderProxy extends Web3HttpProvider {
   constructor(host, options) {
@@ -13,6 +15,7 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
     // throw new Error( "test callback error handler");
     // console.trace("provider-proxy send trace stack");
     const adapted = this.chainAdaptor(payload);
+    debug("adapted:", adapted);
     const superSend = super.send.bind(this);
 
     const wrappedCallback = function(err, result) {
@@ -28,23 +31,23 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
     };
 
     const execute = function(_adapted) {
+      // console.log("execute ", _adapted);
       if (_adapted.adaptedSend) {
         _adapted.adaptedSend(superSend, payload, wrappedCallback);
         return;
       }
 
+      debug(`\nSend RPC:`, _adapted.adaptedPayload);
       superSend(_adapted.adaptedPayload, function(err, result) {
-        debug(`\nSend RPC:`, _adapted.adaptedPayload);
-
         let adaptorResult = result && _adapted.adaptedOutputFn(result);
-        debug("Adaptor rpc response:", adaptorResult, "\n");
+        debug("Adaptor RPC response:", adaptorResult, "\n");
 
         if (adaptorResult.error && adaptorResult.error.message) {
           adaptorResult.error.message += `\n> adapted payload is: ${JSON.stringify(
             _adapted.adaptedPayload
           )}`;
         }
-        debug("adaptorResult:", adaptorResult);
+        // console.log("wrappedCallback",err,adaptorResult);
         wrappedCallback(err, adaptorResult);
       });
     };
@@ -63,5 +66,7 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
 
 module.exports = {
   HttpProvider: Web3HttpProviderProxy,
-  ethToConflux
+  ethToConflux,
+  format,
+  confluxUtil
 };

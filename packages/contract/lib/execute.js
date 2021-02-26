@@ -7,7 +7,7 @@ const Reason = require("./reason");
 const handlers = require("./handlers");
 const override = require("./override");
 const reformat = require("./reformat");
-// const { formatters } = require("web3-core-helpers"); //used for reproducing web3's behavior
+const { format } = require("web3-providers-http-proxy");
 
 const execute = {
   // -----------------------------------  Helpers --------------------------------------------------
@@ -74,6 +74,8 @@ const execute = {
       params = processedValues.params;
     }
 
+    params = format.formatTxHexAddress(params);
+
     const network = await constructor.detectNetwork();
     return { args, params, network };
   },
@@ -128,10 +130,10 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, args)
         .then(async ({ args, params }) => {
-          args = utils.formatHexAddress(args);
+          args = format.deepFormatHexAddress(args);
           let result;
 
-          params.to = address;
+          params.to = format.formatHexAddress(address);
 
           promiEvent.eventEmitter.emit("execute:call:method", {
             fn: fn,
@@ -172,14 +174,14 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, arguments)
         .then(async ({ args, params, network }) => {
-          args = utils.formatHexAddress(args);
+          args = format.deepFormatHexAddress(args);
           const context = {
             contract: constructor, // Can't name this field `constructor` or `_constructor`
             promiEvent: promiEvent,
             params: params
           };
 
-          params.to = address;
+          params.to = format.formatHexAddress(address);
           params.data = fn ? fn(...args).encodeABI() : params.data;
 
           promiEvent.eventEmitter.emit("execute:send:method", {
@@ -233,7 +235,7 @@ const execute = {
       execute
         .prepareCall(constructor, constructorABI, arguments)
         .then(async ({ args, params, network }) => {
-          args = utils.formatHexAddress(args);
+          args = format.deepFormatHexAddress(args);
           const { blockLimit } = network;
 
           utils.checkLibraries.apply(constructor);
@@ -490,6 +492,8 @@ const execute = {
   sendTransaction: function(web3, params, promiEvent, context) {
     //first off: if we don't need the debugger, let's not risk any errors on our part,
     //and just have web3 do everything
+    params = format.formatTxHexAddress(params);
+
     if (!promiEvent || !promiEvent.debug) {
       const deferred = web3.eth.sendTransaction(params);
       handlers.setup(deferred, context);
@@ -505,6 +509,8 @@ const execute = {
     //work on web!), I'm going to resort to manual promise creation rather than
     //using util.promisify :-/
     debug("executing manually!");
+    params = format.formatTxHexAddress(params);
+
     const send = rpc =>
       new Promise((accept, reject) =>
         web3.currentProvider.send(

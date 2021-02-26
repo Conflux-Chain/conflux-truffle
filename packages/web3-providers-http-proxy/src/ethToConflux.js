@@ -1,17 +1,9 @@
-const { emptyFn, numToHex, deepClone, setNull, delKeys } = require("./util");
+const { emptyFn, deepClone, delKeys } = require("./util");
 const debug = require("debug")("ethToConflux");
-const { PrivateKeyAccount, Conflux, format } = require("js-conflux-sdk");
-
-// TODO MAP latest_checkpoint
-const EPOCH_MAP = {
-  earliest: "earliest",
-  latest: "latest_state",
-  pending: "latest_state"
-};
-// const DEFAULT_PASSWORD = "123456";
+const { PrivateKeyAccount, Conflux } = require("js-conflux-sdk");
+const format = require("./format");
 
 let cfx = undefined;
-const checksumAddress = emptyFn;
 const accountAddresses = [];
 const accounts = {};
 
@@ -19,7 +11,7 @@ const bridge = {
   eth_blockNumber: {
     method: "cfx_epochNumber",
     input: function(params) {
-      mapParamsTagAtIndex(params, 0);
+      format.formatEpochOfParams(params, 0);
       return params;
     }
   },
@@ -31,14 +23,17 @@ const bridge = {
   eth_getBalance: {
     method: "cfx_getBalance",
     input: function(params) {
-      mapParamsTagAtIndex(params, 1);
+      format.formatEpochOfParams(params, 1);
+      params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
     }
   },
 
   eth_call: {
     method: "cfx_call",
-    input: formatInput()
+    input: function(params) {
+      return format.formatCommonInput(params, cfx);
+    }
   },
 
   eth_gasPrice: {
@@ -52,7 +47,7 @@ const bridge = {
         response.result = accountAddresses;
         response.error = null;
       } else if (response && response.result) {
-        response.result = response.result.map(checksumAddress);
+        response.result = response.result.map(format.formatHexAddress);
       }
       return response;
     }
@@ -61,7 +56,8 @@ const bridge = {
   eth_getTransactionCount: {
     method: "cfx_getNextNonce", // NOT right
     input: function(params) {
-      mapParamsTagAtIndex(params, 1);
+      format.formatEpochOfParams(params, 1);
+      params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
     }
   },
@@ -69,7 +65,8 @@ const bridge = {
   eth_getCode: {
     method: "cfx_getCode",
     input: function(params) {
-      mapParamsTagAtIndex(params, 1);
+      format.formatEpochOfParams(params, 1);
+      params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
     },
     output: function(response) {
@@ -83,7 +80,9 @@ const bridge = {
 
   eth_estimateGas: {
     method: "cfx_estimateGasAndCollateral",
-    input: formatInput(),
+    input: function(params) {
+      format.formatCommonInput(params, cfx);
+    },
     output: function(response) {
       if (response && response.result && response.result.gasUsed) {
         response.result = response.result.gasUsed;
@@ -105,15 +104,12 @@ const bridge = {
         const txInput = params[0];
         const from = getAccount(txInput.from);
 
-        params[0] = await formatTxInput.bind(cfx)(txInput);
+        params[0] = await format.formatTxParams(cfx, txInput);
         debug("formated inputTx:", params[0]);
         if (from) {
           let signedTx = await from.signTransaction(params[0]);
           params[0] = "0x" + signedTx.encode(true).toString("hex");
         }
-        // else if (params.length == 1) {
-        //   params.push(DEFAULT_PASSWORD);
-        // }
       }
       return params;
     }
@@ -122,7 +118,7 @@ const bridge = {
   eth_getStorageAt: {
     method: "cfx_getStorageAt",
     input: function(params) {
-      mapParamsTagAtIndex(params, 2);
+      format.formatEpochOfParams(params, 2);
       return params;
     }
   },
@@ -131,7 +127,7 @@ const bridge = {
     method: "cfx_getBlockByHash",
     output: function(response) {
       if (response && response.result) {
-        formatBlock(response.result);
+        format.formatBlock(response.result);
       }
       return response;
     }
@@ -140,12 +136,12 @@ const bridge = {
   eth_getBlockByNumber: {
     method: "cfx_getBlockByEpochNumber",
     input: function(params) {
-      mapParamsTagAtIndex(params, 0);
+      format.formatEpochOfParams(params, 0);
       return params;
     },
     output: function(response) {
       if (response && response.result) {
-        formatBlock(response.result);
+        format.formatBlock(response.result);
       }
       return response;
     }
@@ -154,7 +150,8 @@ const bridge = {
   eth_getTransactionByHash: {
     method: "cfx_getTransactionByHash",
     output: function(response) {
-      if (response && response.result) formatTx(response.result);
+      if (response && response.result)
+        format.formatTransaction(response.result);
       return response;
     }
   },
@@ -190,15 +187,26 @@ const bridge = {
     output: function(response) {
       if (response && response.result) {
         txReceipt = response.result;
+        txReceipt.contractCreated = format.formatHexAddress(
+          txReceipt.contractCreated
+        );
+        txReceipt.from = format.formatHexAddress(txReceipt.from);
+        txReceipt.to = format.formatHexAddress(txReceipt.to);
+        if (txReceipt.logs) {
+          txReceipt.logs.forEach(
+            l => (l.address = format.formatHexAddress(l.address))
+          );
+        }
+
         txReceipt.contractAddress = txReceipt.contractCreated;
         txReceipt.blockNumber = txReceipt.epochNumber;
         txReceipt.transactionIndex = txReceipt.index;
-        // txReceipt.status = txReceipt.outcomeStatus === 0 ? 1 : 0; // conflux和以太坊状态相反
         // console.log("txReceipt.outcomeStatus",Number.parseInt(txReceipt.outcomeStatus));
         txReceipt.status = Number.parseInt(txReceipt.outcomeStatus)
           ? "0x0"
           : "0x1"; // conflux和以太坊状态相反
         txReceipt.cumulativeGasUsed = txReceipt.gasUsed; // TODO simple set
+
         // txReceipt.gasUsed = `0x${txReceipt.gasUsed.toString(16)}`;
         delKeys(txReceipt, [
           "contractCreated",
@@ -219,10 +227,16 @@ const bridge = {
       if (params.length > 0) {
         let fromBlock = params[0].fromBlock;
         let toBlock = params[0].toBlock;
-        params[0].fromEpoch = mapTag(fromBlock);
-        params[0].toEpoch = mapTag(toBlock);
+        params[0].fromEpoch = format.formatEpoch(fromBlock);
+        params[0].toEpoch = format.formatEpoch(toBlock);
       }
       return params;
+    },
+    output: function(response) {
+      if (response && response.result) {
+        let logs = response.result;
+        logs.forEach(l => (l.address = format.formatHexAddress(l.address)));
+      }
     }
   },
 
@@ -269,6 +283,7 @@ const bridge = {
     }
   }
 };
+
 function ethToConflux(options) {
   // it's better to use class
   setHost(options.url || `http://${options.host}:${options.port}`).then(
@@ -284,7 +299,7 @@ function ethToConflux(options) {
     // eslint-disable-next-line no-unused-vars
     const handler = bridge[payload.method];
 
-    debug(`Mapping "${oldPayload.method}" to ${handler && handler.method}`);
+    debug("Mapping", oldPayload.method, "to", handler && handler.method);
     if (!handler) {
       return {
         adaptedOutputFn: emptyFn,
@@ -314,155 +329,7 @@ function ethToConflux(options) {
   return adaptor;
 }
 
-module.exports = ethToConflux;
-
 // helper methods===============================================
-
-function formatInput(txRelatedParamIndex = 0, epochParamIndex = 1) {
-  return function(params) {
-    let ti = txRelatedParamIndex;
-    if (params[ti]) {
-      // format tx gas and gasPrice
-      if (params[ti].gas && Number.isInteger(params[ti].gas)) {
-        params[ti].gas = numToHex(params[ti].gas);
-      }
-      if (params[ti].gasPrice && Number.isInteger(params[ti].gasPrice)) {
-        params[ti].gasPrice = numToHex(params[ti].gasPrice);
-      }
-      if (params[ti].from) params[ti].from = checksumAddress(params[ti].from);
-      if (params[ti].to) params[ti].to = checksumAddress(params[ti].to);
-    }
-    mapParamsTagAtIndex(params, epochParamIndex);
-    return params;
-  };
-}
-
-function formatTx(tx) {
-  // blockNumber?   TODO maybe cause big problem
-  tx.input = tx.data;
-  delKeys(tx, [
-    "chainId",
-    "contractCreated",
-    "data",
-    "epochHeight",
-    "status",
-    "storageLimit"
-  ]);
-  setNull(tx, ["blockNumber"]);
-  return tx;
-}
-
-function formatBlock(block) {
-  block.number = block.epochNumber;
-  // sha3Uncles?
-  // logsBloom?
-  block.stateRoot = block.deferredStateRoot;
-  block.receiptsRoot = block.deferredReceiptsRoot;
-  // totalDifficulty?
-  // extraData?
-  // gasUsed?
-  block.uncles = block.refereeHashes; // check?
-  // format tx object
-  if (
-    block.tranactions &&
-    block.tranactions.length > 0 &&
-    typeof block.tranactions[0] === "object"
-  ) {
-    for (let tx of block.tranactions) {
-      formatTx(tx);
-    }
-  }
-  delKeys(block, [
-    "adaptive",
-    "blame",
-    "deferredLogsBloomHash",
-    "deferredReceiptsRoot",
-    "deferredStateRoot",
-    "epochNumber",
-    "height",
-    "powQuality",
-    "refereeHashes"
-  ]);
-  setNull(block, [
-    "extraData",
-    "gasUsed",
-    "logsBloom",
-    "mixHash",
-    "sha3Uncles",
-    "totalDifficulty"
-  ]);
-  return block;
-}
-
-async function formatTxInput(options) {
-  if (options.value === undefined) {
-    options.value = "0x0";
-  }
-
-  if (options.nonce === undefined) {
-    options.nonce = await this.getNextNonce(options.from);
-  }
-
-  if (options.gasPrice === undefined) {
-    options.gasPrice = this.defaultGasPrice;
-  }
-  if (options.gasPrice === undefined) {
-    const recommendGas = Number.parseInt(await this.getGasPrice());
-    options.gasPrice = numToHex(recommendGas || 1); // MIN_GAS_PRICE
-  }
-
-  if (options.gas === undefined) {
-    options.gas = this.defaultGas;
-  }
-
-  if (options.storageLimit === undefined) {
-    options.storageLimit = this.defaultStorageLimit;
-  }
-
-  if (options.gas === undefined || options.storageLimit === undefined) {
-    const {
-      gasUsed,
-      storageCollateralized
-    } = await this.estimateGasAndCollateral(options);
-
-    if (options.gas === undefined) {
-      options.gas = gasUsed;
-    }
-
-    if (options.storageLimit === undefined) {
-      options.storageLimit = storageCollateralized;
-    }
-  }
-
-  if (options.epochHeight === undefined) {
-    options.epochHeight = await this.getEpochNumber();
-  }
-
-  if (options.chainId === undefined) {
-    options.chainId = this.defaultChainId;
-  }
-
-  if (options.chainId === undefined) {
-    const status = await this.getStatus();
-    options.chainId = status.chainId;
-  }
-
-  const forCfxSendTransaction = !getAccount(options.from);
-  if (forCfxSendTransaction) {
-    options = format.callTx(options);
-  }
-  return options;
-}
-
-function mapTag(tag) {
-  return EPOCH_MAP[tag] || tag;
-}
-
-function mapParamsTagAtIndex(params, index) {
-  if (params[index]) {
-    params[index] = mapTag(params[index]);
-  }
-}
 
 function setAccounts(privateKeys, networkId) {
   if (!privateKeys) return;
@@ -474,7 +341,7 @@ function setAccounts(privateKeys, networkId) {
   privateKeys.forEach(key => {
     // console.log("cfx networkId:", networkId)
     const account = new PrivateKeyAccount(key, networkId);
-    const checksumed = checksumAddress(account.address);
+    const checksumed = format.formatHexAddress(account.address);
     if (accountAddresses.indexOf(checksumed) < 0) {
       accountAddresses.push(checksumed);
       accounts[account.address] = account;
@@ -487,11 +354,16 @@ function getAccount(address) {
 }
 
 async function setHost(host) {
-  // debug("set host:", host);
+  debug("set host:", host);
   cfx = new Conflux({
     url: host
     // logger:console
   });
   let { networkId } = await cfx.getStatus();
   cfx.networkId = networkId;
+  cfx.getAccount = getAccount;
 }
+
+// =============================================================
+
+module.exports = ethToConflux;
