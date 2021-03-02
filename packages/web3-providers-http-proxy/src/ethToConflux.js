@@ -175,8 +175,8 @@ const bridge = {
     method: "cfx_getStatus",
     output: function(response) {
       debug("convert cfx_getStatus response:", response);
-      if (response && response.result && response.result.chainId) {
-        response.result = Number.parseInt(response.result.chainId) + 10000;
+      if (response && response.result && response.result.networkId) {
+        response.result = Number.parseInt(response.result.networkId);
       }
       return response;
     }
@@ -341,16 +341,17 @@ function setAccounts(privateKeys, networkId) {
   privateKeys.forEach(key => {
     // console.log("cfx networkId:", networkId)
     const account = new PrivateKeyAccount(key, networkId);
-    const checksumed = format.formatHexAddress(account.address);
-    if (accountAddresses.indexOf(checksumed) < 0) {
-      accountAddresses.push(checksumed);
-      accounts[account.address] = account;
+    const hexAddress = format.formatHexAddress(account.address);
+    if (accountAddresses.indexOf(hexAddress) < 0) {
+      accountAddresses.push(hexAddress);
+      accounts[hexAddress] = account;
     }
   });
 }
 
 function getAccount(address) {
-  return accounts[address.toLowerCase(address)];
+  debug("get account:", address, accounts);
+  return accounts[format.formatHexAddress(address)];
 }
 
 async function setHost(host) {

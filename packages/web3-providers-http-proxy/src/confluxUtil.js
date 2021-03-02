@@ -31,7 +31,7 @@ async function detectNetworkId() {
   // console.trace(config);
   await Environment.detect(config);
   // console.trace(config.networks[config.network].network_id);
-  return config.networks[config.network].network_id - 10000;
+  return config.networks[config.network].network_id;
 }
 
 let detectNetowrkIdSync = syncFunc(detectNetworkId);
