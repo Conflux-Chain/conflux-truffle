@@ -13,12 +13,20 @@ const fse = require("fs-extra");
 const path = require("path");
 const EventEmitter = require("events");
 const spawnSync = require("child_process").spawnSync;
+const { format } = require("web3-providers-http-proxy");
+var util = require("util");
+
+const writer = function(obj) {
+  obj = format.deepFormatAddress(obj, this.web3.cfx.networkId);
+  return util.inspect(obj);
+};
+
 
 const processInput = input => {
   const inputComponents = input.trim().split(" ");
   if (inputComponents.length === 0) return input;
 
-  if (inputComponents[0] === "truffle") {
+  if (inputComponents[0] === "truffle" || inputComponents[0] === "cfxtruffle") {
     return inputComponents.slice(1).join(" ");
   }
   return input.trim();
@@ -61,8 +69,9 @@ class Console extends EventEmitter {
   async start() {
     try {
       this.repl = repl.start({
-        prompt: "truffle(" + this.options.network + ")> ",
-        eval: this.interpret.bind(this)
+        prompt: "cfxtruffle(" + this.options.network + ")> ",
+        eval: this.interpret.bind(this),
+        writer: writer.bind(this)
       });
 
       let accounts;
@@ -77,6 +86,7 @@ class Console extends EventEmitter {
       this.repl.context.web3 = this.web3;
       this.repl.context.interfaceAdapter = this.interfaceAdapter;
       this.repl.context.accounts = accounts;
+      this.repl.cfx = this.web3.cfx;
       this.provision();
 
       //want repl to exit when it receives an exit command

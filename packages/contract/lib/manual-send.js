@@ -7,6 +7,7 @@ const { formatters } = require("web3-core-helpers"); //used for reproducing web3
 //(it's still more manual than using web3)
 async function sendTransactionManual(web3, params, promiEvent) {
   debug("executing manually!");
+  params = format.formatTxHexAddress(params);
   //set up ethers provider
   const ethersProvider = new ethers.providers.Web3Provider(
     web3.currentProvider

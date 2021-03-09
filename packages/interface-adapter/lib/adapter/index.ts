@@ -4,8 +4,8 @@ import { InterfaceAdapter } from "./types";
 
 export type InterfaceAdapterOptions = Web3InterfaceAdapterOptions;
 
-const getNetworkTypeClass = (networkType = "ethereum") => {
-  const supportedEvmNetworks = ["ethereum", "fabric-evm", "quorum"];
+const getNetworkTypeClass = (networkType = "conflux") => {
+  const supportedEvmNetworks = ["ethereum", "fabric-evm", "quorum", "conflux"];
 
   if (supportedEvmNetworks.includes(networkType)) return "evm-like";
   return networkType;

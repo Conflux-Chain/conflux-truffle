@@ -8,6 +8,7 @@ const handlers = require("./handlers");
 const override = require("./override");
 const reformat = require("./reformat");
 const { sendTransactionManual } = require("./manual-send");
+const { format } = require("web3-providers-http-proxy");
 
 const execute = {
   // -----------------------------------  Helpers --------------------------------------------------
@@ -74,6 +75,7 @@ const execute = {
       params = processedValues.params;
     }
 
+    params = format.formatTxHexAddress(params);
     const network = await constructor.detectNetwork();
     return { args, params, network };
   },
@@ -128,9 +130,10 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, args)
         .then(async ({ args, params }) => {
+          args = format.deepFormatHexAddress(args);
           let result;
 
-          params.to = address;
+          params.to =  format.formatHexAddress(address);
 
           promiEvent.eventEmitter.emit("execute:call:method", {
             fn: fn,
@@ -171,13 +174,14 @@ const execute = {
       execute
         .prepareCall(constructor, methodABI, arguments)
         .then(async ({ args, params, network }) => {
+          args = format.deepFormatHexAddress(args);
           const context = {
             contract: constructor, // Can't name this field `constructor` or `_constructor`
             promiEvent: promiEvent,
             params: params
           };
 
-          params.to = address;
+          params.to = format.formatHexAddress(address);
           params.data = fn ? fn(...args).encodeABI() : params.data;
 
           promiEvent.eventEmitter.emit("execute:send:method", {
@@ -233,6 +237,7 @@ const execute = {
       execute
         .prepareCall(constructor, constructorABI, arguments)
         .then(async ({ args, params, network }) => {
+          args = format.deepFormatHexAddress(args);
           const { blockLimit } = network;
 
           utils.checkLibraries.apply(constructor);
@@ -288,6 +293,10 @@ const execute = {
               receipt.contractAddress
             );
             web3Instance.transactionHash = context.transactionHash;
+
+            if (!web3Instance.transactionHash) {
+              web3Instance.transactionHash = promiEvent.transactionHash;
+            }
 
             context.promiEvent.resolve(new constructor(web3Instance));
           } catch (web3Error) {
@@ -527,6 +536,7 @@ const execute = {
   sendTransaction: function (web3, params, promiEvent, context) {
     //first off: if we don't need the debugger, let's not risk any errors on our part,
     //and just have web3 do everything
+    params = format.formatTxHexAddress(params);
     if (!promiEvent || !promiEvent.debug) {
       const deferred = web3.eth.sendTransaction(params);
       handlers.setup(deferred, context);

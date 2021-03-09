@@ -115,18 +115,18 @@ const command = {
   determineDryRunSettings: function (config, options) {
     // Source: ethereum.stackexchange.com/questions/17051
     const networkWhitelist = [
-      1, // Mainnet (ETH & ETC)
-      2, // Morden (ETC)
-      3, // Ropsten
-      4, // Rinkeby
-      5, // Goerli
-      8, // Ubiq
-      42, // Kovan (Parity)
-      77, // Sokol
-      99, // Core
+      // 1, // Mainnet (ETH & ETC)
+      // 2, // Morden (ETC)
+      // 3, // Ropsten
+      // 4, // Rinkeby
+      // 5, // Goerli
+      // 8, // Ubiq
+      // 42, // Kovan (Parity)
+      // 77, // Sokol
+      // 99, // Core
 
-      7762959, // Musiccoin
-      61717561 // Aquachain
+      // 7762959, // Musiccoin
+      // 61717561 // Aquachain
     ];
 
     let dryRunOnly, skipDryRun;

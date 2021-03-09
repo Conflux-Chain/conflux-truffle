@@ -3,6 +3,7 @@ const Web3 = require("web3");
 const { createInterfaceAdapter } = require("@truffle/interface-adapter");
 const wrapper = require("./wrapper");
 const DEFAULT_NETWORK_CHECK_TIMEOUT = 5000;
+const providerProxy = require("web3-providers-http-proxy");
 
 module.exports = {
   wrap: function (provider, options) {
@@ -15,6 +16,7 @@ module.exports = {
   },
 
   getProvider: function (options) {
+    // console.log("get provider", options);
     let provider;
     if (options.provider && typeof options.provider === "function") {
       provider = options.provider();
@@ -24,6 +26,12 @@ module.exports = {
       provider = new Web3.providers.WebsocketProvider(
         options.url || "ws://" + options.host + ":" + options.port
       );
+    } else if (!options || !options.type || options.type == "conflux") {
+      provider = new providerProxy.HttpProvider(
+        options.url || `http://${options.host}:${options.port}`, {
+        keepAlive: false,
+        chainAdaptor: providerProxy.ethToConflux(options)
+      });
     } else {
       provider = new Web3.providers.HttpProvider(
         options.url || `http://${options.host}:${options.port}`,
@@ -67,7 +75,7 @@ module.exports = {
           } catch (error) {
             console.log(
               "> Something went wrong while attempting to connect " +
-                "to the network. Check your network configuration."
+              "to the network. Check your network configuration."
             );
             clearTimeout(noResponseFromNetworkCall);
             clearTimeout(networkCheck);

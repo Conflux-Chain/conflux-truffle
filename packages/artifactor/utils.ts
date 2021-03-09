@@ -2,12 +2,20 @@ import fse from "fs-extra";
 import merge from "lodash.merge";
 import assign from "lodash.assign";
 import { ContractObject } from "@truffle/contract-schema";
+const { format } = require("web3-providers-http-proxy");
 
 export function writeArtifact(
   completeArtifact: ContractObject,
   outputPath: string
 ) {
   completeArtifact.updatedAt = new Date().toISOString();
+  Object.keys(completeArtifact.networks).forEach(networkId => {
+    // console.log("deepFormatAddress networkId",networkId)
+    format.deepFormatAddress(
+      completeArtifact.networks[networkId],
+      Number.parseInt(networkId)
+    );
+  });
   fse.writeFileSync(
     outputPath,
     JSON.stringify(completeArtifact, null, 2),

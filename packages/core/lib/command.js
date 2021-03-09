@@ -8,14 +8,32 @@ const {extractFlags} = require("./utils/utils"); // Contains utility methods
 class Command {
   constructor(commands) {
     this.commands = commands;
+    Command.chain = "Conflux";
+    Command.bin = "cfxtruffle";
+    Command.npmPack = "Conflux-Truffle";
 
     let args = yargs();
 
     Object.keys(this.commands).forEach(function (command) {
+      Command.replaceEthToCfx(commands[command]);
       args = args.command(commands[command]);
     });
 
     this.args = args;
+  }
+
+  static replaceEthToCfx(input) {
+    if (typeof input == "object") {
+      for (const key in input) {
+        if ((key == "description" || key == "usage" || key == "describe") && typeof input[key] == "string")
+          input[key] = input[key].replace(/ethereum/ig, Command.chain)
+            .replace(/^truffle/g, Command.bin)
+            .replace(/ truffle/g, " " + Command.bin)
+            .replace(/^Truffle/g, Command.npmPack)
+            .replace(/ Truffle/g, " " + Command.npmPack);
+        Command.replaceEthToCfx(input[key]);
+      }
+    }
   }
 
   getCommand(inputStrings, noAliases) {
@@ -139,12 +157,12 @@ class Command {
   displayGeneralHelp() {
     this.args
       .usage(
-        "Truffle v" +
-          (bundled || core) +
-          " - a development framework for Ethereum" +
-          OS.EOL +
-          OS.EOL +
-          "Usage: truffle <command> [options]"
+        Command.chain + "-" + "Truffle v" +
+        (bundled || core) +
+        " - a development framework for " + Command.chain +
+        OS.EOL +
+        OS.EOL +
+        "Usage: " + Command.bin + " <command> [options]"
       )
       .epilog("See more at http://trufflesuite.com/docs")
       .showHelp();

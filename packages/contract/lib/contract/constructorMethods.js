@@ -7,6 +7,7 @@ const execute = require("../execute");
 const bootstrap = require("./bootstrap");
 const debug = require("debug")("contract:contract:constructorMethods");
 const OS = require("os");
+const {format} = require("web3-providers-http-proxy");
 
 module.exports = Contract => ({
   configureNetwork({ networkType, provider } = {}) {
@@ -139,7 +140,7 @@ module.exports = Contract => ({
     this.network_id = `${network_id}`;
   },
 
-  setNetworkType(networkType = "ethereum") {
+  setNetworkType(networkType = "conflux") {
     this.configureNetwork({ networkType });
   },
 
@@ -181,7 +182,10 @@ module.exports = Contract => ({
           throw new Error("Cannot link contract without an address.");
         }
 
-        this.link(contract.contractName, contract.address);
+        this.link(
+          contract.contractName,
+          format.formatHexAddress(contract.address)
+        );
 
         // Merge events so this contract knows about library's events
         Object.keys(contract.events).forEach(topic => {
@@ -228,6 +232,7 @@ module.exports = Contract => ({
 
     const temp = function TruffleContract() {
       this.constructor = temp;
+      format.deepFormatHexAddress(arguments);
       return Contract.apply(this, arguments);
     };
 

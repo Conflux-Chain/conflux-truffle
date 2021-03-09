@@ -204,6 +204,7 @@ export const configProps = ({
     },
     provider: {
       get() {
+        // console.log("get provider with network",configObject.network);
         if (!configObject.network) {
           return null;
         }
@@ -211,6 +212,7 @@ export const configProps = ({
         const options = configObject.network_config;
         options.verboseRpc = configObject.verboseRpc;
 
+        
         return Provider.create(options);
       },
       set() {

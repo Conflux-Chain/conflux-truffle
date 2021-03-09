@@ -17,3 +17,13 @@ packages/debugger/.tmp
 
 # @truffle/contract
 packages/contract/dist
+
+#for debug
+my-practice
+
+packages/web3-providers-http-proxy/test/eth-tmp.js
+packages/web3-providers-http-proxy/test/cfx-tmp.js
+
+# intellij
+.idea
+.gradle

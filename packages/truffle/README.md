@@ -1,13 +1,7 @@
-<img src="https://trufflesuite.com/img/truffle-logo-dark.svg" width="200">
-
-[![npm](https://img.shields.io/npm/v/truffle.svg)]()
-[![npm](https://img.shields.io/npm/dm/truffle.svg)]()
-[![Join the chat at https://gitter.im/consensys/truffle](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/consensys/truffle?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
+<img src="https://raw.githubusercontent.com/Pana/conflux-101/master/images/conflux&truffle.png" width="200">
 -----------------------
 
-
-Truffle is a development environment, testing framework and asset pipeline for Ethereum, aiming to make life as an Ethereum developer easier. With Truffle, you get:
+Conflux-Truffle is a development environment, testing framework and asset pipeline for Conflux, aiming to make life as an Conflux developer easier. With Conflux-Truffle, you get:
 
 * Built-in smart contract compilation, linking, deployment and binary management.
 * Automated contract testing with Mocha and Chai.
@@ -16,12 +10,12 @@ Truffle is a development environment, testing framework and asset pipeline for E
 * Network management for deploying to many public & private networks.
 * Interactive console for direct contract communication.
 * Instant rebuilding of assets during development.
-* External script runner that executes scripts within a Truffle environment.
+* External script runner that executes scripts within a Conflux-Truffle environment.
 
 ### Install
 
 ```
-$ npm install -g truffle
+$ npm install -g conflux-truffle
 ```
 
 ### Quick Usage
@@ -29,24 +23,24 @@ $ npm install -g truffle
 For a default set of contracts and tests, run the following within an empty project directory:
 
 ```
-$ truffle init
+$ cfxtruffle init
 ```
 
-From there, you can run `truffle compile`, `truffle migrate` and `truffle test` to compile your contracts, deploy those contracts to the network, and run their associated unit tests.
+From there, you can run `cfxtruffle compile`, `cfxtruffle migrate` and `cfxtruffle test` to compile your contracts, deploy those contracts to the network, and run their associated unit tests.
 
-Truffle comes bundled with a local development blockchain server that launches automatically when you invoke the commands  above. If you'd like to [configure a more advanced development environment](http://trufflesuite.com/docs/advanced/configuration) we recommend you install the blockchain server separately by running `npm install -g ganache-cli` at the command line.
+Conflux-Truffle comes bundled with a local development blockchain server that launches automatically when you invoke the commands  above. If you'd like to [configure a more advanced development environment](http://truffleframework.com/docs/advanced/configuration) we recommend you install the conflux-rust docker separately by running `docker pull confluxchain/conflux-rust` at the command line.
 
-+  [ganache-cli](https://github.com/trufflesuite/ganache-cli): a command-line version of Truffle's blockchain server.
-+  [ganache](http://trufflesuite.com/ganache/): A GUI for the server that displays your transaction history and chain state.
-
++ [conflux-rust-docker](https://hub.docker.com/r/confluxchain/conflux-rust)
 
 ### Documentation
 
-Please see the [Official Truffle Documentation](http://trufflesuite.com/docs/) for guides, tips, and examples.
+Please see the [how-to-use](https://github.com/Conflux-Chain/conflux-truffle/blob/conflux/how-to-use.md) for guides, tips, and examples.
+Also could get Chinese version from [here](https://github.com/Pana/conflux-101/blob/master/docs/conflux-truffle.md).
 
-### Contributing
 
-This package is a distribution package of the Truffle command line tool. Please see [@truffle/core](https://github.com/trufflesuite/truffle/tree/develop/packages/core) to contribute to the main core code.
+### Change Log
+
+Please see the change logs from [here](https://github.com/Conflux-Chain/conflux-truffle/blob/conflux/CHANGE_LOG.md)
 
 ### License
 

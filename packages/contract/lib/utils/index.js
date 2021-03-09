@@ -15,7 +15,10 @@ const allowedTxParams = new Set([
   "data",
   "nonce",
   "privateFor",
-  "overwrite"
+  "overwrite",
+  "storageLimit",
+  "epochHeight",
+  "chainId"
 ]);
 
 const Utils = {

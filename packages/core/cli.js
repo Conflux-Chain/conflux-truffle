@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 require("source-map-support/register");
+global.Promise=require("bluebird");
 
 const semver = require("semver"); // to validate Node version
 
@@ -16,7 +17,7 @@ if (!semver.gte(process.version, minimumNodeVersion)) {
   console.log(
     "Error: Node version not supported. You are currently using version " +
       process.version.slice(1) +
-      " of Node. Truffle requires Node v" +
+      " of Node. Conflux-Truffle requires Node v" +
       minimumNodeVersion +
       " or higher."
   );
@@ -102,5 +103,14 @@ command
       console.log(error.stack || error.message || error.toString());
       version.logTruffleAndNode(options.logger);
     };
+    process.exit(1);
+  });
+
+  process
+  .on("unhandledRejection", (reason, p) => {
+    console.error(reason, "Unhandled Rejection at Promise", p);
+  })
+  .on("uncaughtException", err => {
+    console.error(err, "Uncaught Exception thrown");
     process.exit(1);
   });
