@@ -20,6 +20,7 @@ packages/contract/dist
 
 #for debug
 my-practice
+tmp
 
 packages/web3-providers-http-proxy/test/eth-tmp.js
 packages/web3-providers-http-proxy/test/cfx-tmp.js
