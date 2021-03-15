@@ -10,7 +10,7 @@ export const ConfluxDefinition = {
 
     overrides.initCfx(web3);
     overrides.provider(web3);
-    overrides.cfxSendTransaction(web3);
+    // overrides.cfxSendTransaction(web3);
   }
 };
 
@@ -26,7 +26,7 @@ const overrides = {
       // logger:console
     });
     // @ts-ignore
-    cfx.updateNetworkId();
+    cfx.updateNetworkId().catch(console.error);
 
     // @ts-ignore
     web3.cfx = cfx;
@@ -50,21 +50,21 @@ const overrides = {
       web3.setProvider(provider);
     }
   },
-  cfxSendTransaction: (web3: Web3Shim) => {
-    if (web3.currentProvider instanceof HttpProvider) {
-      const old = cfx.sendTransaction;
-      // @ts-ignore
-      const ethToConfluxAdaptor = web3.currentProvider.chainAdaptor;
-      const accounts = ethToConfluxAdaptor.accounts;
-      const newMethod = function() {
-        const from = arguments[0].from;
-        if (from && typeof from === "string") {
-          arguments[0].from = accounts[from.toLowerCase()] || from;
-        }
-        // @ts-ignore
-        return old(...arguments);
-      };
-      cfx.sendTransaction = newMethod;
-    }
-  }
+  // cfxSendTransaction: (web3: Web3Shim) => {
+  //   if (web3.currentProvider instanceof HttpProvider) {
+  //     const old = cfx.sendTransaction;
+  //     // @ts-ignore
+  //     const ethToConfluxAdaptor = web3.currentProvider.chainAdaptor;
+  //     const accounts = ethToConfluxAdaptor.accounts;
+  //     const newMethod = function() {
+  //       const from = arguments[0].from;
+  //       if (from && typeof from === "string") {
+  //         arguments[0].from = accounts[from.toLowerCase()] || from;
+  //       }
+  //       // @ts-ignore
+  //       return old(...arguments);
+  //     };
+  //     cfx.sendTransaction = newMethod;
+  //   }
+  // }
 };

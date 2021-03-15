@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 require("source-map-support/register");
 global.Promise=require("bluebird");
+// require("long-stack-traces");
 
 const semver = require("semver"); // to validate Node version
 
@@ -29,6 +30,16 @@ if (!semver.gte(process.version, minimumNodeVersion)) {
 
   process.exit(1);
 }
+
+
+// function wrapConsole(){
+//   let oldConsoleError = console.error;
+
+//   global.console.error = function(){
+//     oldConsoleError(new Error(...arguments).stack);
+//   };
+// }
+// wrapConsole();
 
 const Command = require("./lib/command");
 const command = new Command(require("./lib/commands"));
@@ -106,11 +117,11 @@ command
     process.exit(1);
   });
 
-  process
-  .on("unhandledRejection", (reason, p) => {
-    console.error(reason, "Unhandled Rejection at Promise", p);
-  })
-  .on("uncaughtException", err => {
-    console.error(err, "Uncaught Exception thrown");
-    process.exit(1);
-  });
+  // process
+  // .on("unhandledRejection", (reason, p) => {
+  //   console.error(reason, "Unhandled Rejection at Promise", p);
+  // })
+  // .on("uncaughtException", err => {
+  //   console.error(err, "Uncaught Exception thrown");
+  //   process.exit(1);
+  // });

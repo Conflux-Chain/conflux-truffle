@@ -10,7 +10,8 @@ const accounts = {};
 const bridge = {
   eth_blockNumber: {
     method: "cfx_epochNumber",
-    input: function(params) {
+    input: function (params) {
+      // console.log("------rpc cfx_epochNumber");
       format.formatEpochOfParams(params, 0);
       return params;
     }
@@ -22,7 +23,7 @@ const bridge = {
 
   eth_getBalance: {
     method: "cfx_getBalance",
-    input: function(params) {
+    input: function (params) {
       format.formatEpochOfParams(params, 1);
       params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
@@ -31,7 +32,7 @@ const bridge = {
 
   eth_call: {
     method: "cfx_call",
-    input: function(params) {
+    input: function (params) {
       return format.formatCommonInput(params, cfx);
     }
   },
@@ -42,7 +43,7 @@ const bridge = {
 
   eth_accounts: {
     method: "accounts",
-    output: function(response) {
+    output: function (response) {
       if (response && accountAddresses && accountAddresses.length > 0) {
         response.result = accountAddresses;
         response.error = null;
@@ -55,7 +56,7 @@ const bridge = {
 
   eth_getTransactionCount: {
     method: "cfx_getNextNonce", // NOT right
-    input: function(params) {
+    input: function (params) {
       format.formatEpochOfParams(params, 1);
       params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
@@ -64,12 +65,12 @@ const bridge = {
 
   eth_getCode: {
     method: "cfx_getCode",
-    input: function(params) {
+    input: function (params) {
       format.formatEpochOfParams(params, 1);
       params[0] = format.formatAddress(params[0], cfx.networkId);
       return params;
     },
-    output: function(response) {
+    output: function (response) {
       if (response && response.error && response.error.code == -32016) {
         response.error = null;
         response.result = "0x";
@@ -80,10 +81,10 @@ const bridge = {
 
   eth_estimateGas: {
     method: "cfx_estimateGasAndCollateral",
-    input: function(params) {
+    input: function (params) {
       format.formatCommonInput(params, cfx);
     },
-    output: function(response) {
+    output: function (response) {
       if (response && response.result && response.result.gasUsed) {
         response.result = response.result.gasUsed;
       }
@@ -92,14 +93,14 @@ const bridge = {
   },
 
   eth_sendTransaction: {
-    method: function(params) {
+    method: function (params) {
       if (params.length && getAccount(params[0].from)) {
         return "cfx_sendRawTransaction";
       }
       return "cfx_sendTransaction";
     },
 
-    input: async function(params) {
+    input: async function (params) {
       if (params.length > 0) {
         const txInput = params[0];
         const from = getAccount(txInput.from);
@@ -117,7 +118,7 @@ const bridge = {
 
   eth_getStorageAt: {
     method: "cfx_getStorageAt",
-    input: function(params) {
+    input: function (params) {
       format.formatEpochOfParams(params, 2);
       return params;
     }
@@ -125,7 +126,7 @@ const bridge = {
 
   eth_getBlockByHash: {
     method: "cfx_getBlockByHash",
-    output: function(response) {
+    output: function (response) {
       if (response && response.result) {
         format.formatBlock(response.result);
       }
@@ -135,11 +136,11 @@ const bridge = {
 
   eth_getBlockByNumber: {
     method: "cfx_getBlockByEpochNumber",
-    input: function(params) {
+    input: function (params) {
       format.formatEpochOfParams(params, 0);
       return params;
     },
-    output: function(response) {
+    output: function (response) {
       if (response && response.result) {
         format.formatBlock(response.result);
       }
@@ -149,7 +150,7 @@ const bridge = {
 
   eth_getTransactionByHash: {
     method: "cfx_getTransactionByHash",
-    output: function(response) {
+    output: function (response) {
       if (response && response.result)
         format.formatTransaction(response.result);
       return response;
@@ -162,7 +163,7 @@ const bridge = {
 
   eth_chainId: {
     method: "cfx_getStatus",
-    output: function(response) {
+    output: function (response) {
       debug("convert cfx_getStatus response:", response);
       if (response && response.result && response.result.chainId) {
         response.result = Number.parseInt(response.result.chainId);
@@ -173,7 +174,7 @@ const bridge = {
 
   net_version: {
     method: "cfx_getStatus",
-    output: function(response) {
+    output: function (response) {
       debug("convert cfx_getStatus response:", response);
       if (response && response.result && response.result.networkId) {
         response.result = Number.parseInt(response.result.networkId);
@@ -184,7 +185,7 @@ const bridge = {
 
   eth_getTransactionReceipt: {
     method: "cfx_getTransactionReceipt",
-    output: function(response) {
+    output: function (response) {
       if (response && response.result) {
         txReceipt = response.result;
         txReceipt.contractCreated = format.formatHexAddress(
@@ -193,9 +194,13 @@ const bridge = {
         txReceipt.from = format.formatHexAddress(txReceipt.from);
         txReceipt.to = format.formatHexAddress(txReceipt.to);
         if (txReceipt.logs) {
-          txReceipt.logs.forEach(
-            l => (l.address = format.formatHexAddress(l.address))
-          );
+          for (i in txReceipt.logs) {
+            l = txReceipt.logs[i];
+            l.address = format.formatHexAddress(l.address);
+            l.blockNumber = txReceipt.epochNumber;
+            l.transactionIndex = txReceipt.index;
+            l.logIndex = "0x"+ i.toString(16);
+          }
         }
 
         txReceipt.contractAddress = txReceipt.contractCreated;
@@ -223,16 +228,17 @@ const bridge = {
 
   eth_getLogs: {
     method: "cfx_getLogs",
-    input: function(params) {
+    input: function (params) {
       if (params.length > 0) {
         let fromBlock = params[0].fromBlock;
         let toBlock = params[0].toBlock;
         params[0].fromEpoch = format.formatEpoch(fromBlock);
         params[0].toEpoch = format.formatEpoch(toBlock);
+        params[0].address = format.formatAddress(params[0].address);
       }
       return params;
     },
-    output: function(response) {
+    output: function (response) {
       if (response && response.result) {
         let logs = response.result;
         logs.forEach(l => (l.address = format.formatHexAddress(l.address)));
@@ -246,7 +252,7 @@ const bridge = {
     //   let newParams = [params[1], params[0], DEFAULT_PASSWORD];
     //   return newParams;
     // },
-    send: function(orignSend, payload, callback) {
+    send: function (orignSend, payload, callback) {
       // console.trace("execute sign send ", payload, "callback:", callback.toString());
       payload = deepClone(payload);
       const address = payload.params[0];
@@ -287,12 +293,11 @@ const bridge = {
 function ethToConflux(options) {
   // it's better to use class
   setHost(options.url || `http://${options.host}:${options.port}`).then(
-    async () => {
-      setAccounts(options.privateKeys, cfx.networkId);
-    }
-  );
+     () => setAccounts(options.privateKeys, cfx.networkId)
+  )
+  .catch(e=>debug("set host error:",e));
 
-  adaptor = async function(payload) {
+  adaptor = async function (payload) {
     // clone new one to avoid change old payload
     const oldPayload = payload;
     payload = deepClone(payload);
@@ -357,7 +362,7 @@ function getAccount(address) {
 async function setHost(host) {
   debug("set host:", host);
   cfx = new Conflux({
-    url: host
+    url: host,
     // logger:console
   });
   let { networkId } = await cfx.getStatus();

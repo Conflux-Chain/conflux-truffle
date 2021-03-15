@@ -75,7 +75,7 @@ class Reporter {
       let networkId = await confluxUtil.detectNetworkId();
       // console.log("wrapLogger config.networkId"+networkId);
       host.logger.log = function(data) {
-        debug("logger.log", data);
+        debug("wrap log");
         data = format.deepFormatAddress(data, networkId);
         data = format.repleacEthKeywords(data);
         data!=undefined && oldLog(data);

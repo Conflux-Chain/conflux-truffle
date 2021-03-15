@@ -4,7 +4,7 @@ import { Deployed } from "./Deployed";
 import findContracts from "@truffle/contract-sources";
 import { ResolverSource } from "../../source";
 const contract = require("@truffle/contract");
-
+const {format} = require("web3-providers-http-proxy");
 export class Truffle implements ResolverSource {
   options: any;
 
@@ -51,7 +51,7 @@ export class Truffle implements ResolverSource {
       const addresses = filesData.map(data => {
         const c = contract(JSON.parse(data));
         c.setNetwork(this.options.network_id);
-        if (c.isDeployed()) return c.address;
+        if (c.isDeployed()) return format.formatHexAddress(c.address);
         return null;
       });
 

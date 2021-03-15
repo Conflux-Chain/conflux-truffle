@@ -190,6 +190,8 @@ function formatEpochOfParams(params, index) {
 // }
 
 function formatAddress(stringWithAddr, networkId) {
+  if (!stringWithAddr) return stringWithAddr;
+
   return stringWithAddr.replace(/\b0x[a-f0-9]{40}\b/gi, str =>
     format.address(str, networkId)
   );
@@ -205,23 +207,78 @@ function formatHexAddress(address) {
   return address;
 }
 
-function repleacEthKeywords(data) {
+function repleacEthKeywords(data) { 
   if (typeof data === "string") {
-    data = data.replace(/(^| )eth($| )/g, "cfx");
-    data = data.replace(/(^| )ETH($| )/g, "CFX");
+    data = data.replace(/(^| )eth(\n|$| )/g, "$1cfx$2");
+    data = data.replace(/(^| )ETH(\n|$| )/g, "$1CFX$2");
     data = data.replace(/\bgwei\b/gi, "GDrip");
   }
   return data;
 }
 
-function deepFormatAnyAddress(
-  obj,
-  networkId,
-  tohex = false,
-  cache = new Map()
+function isContainHexAddress(obj, cache = new Map()) {
+  if (!obj) return false;
+
+  // console.log("cache.get(", obj,")", cache.get(obj));
+  if (cache.has(obj)) return cache.get(obj);
+
+  // console.log("check", obj, typeof obj);
+  if (typeof obj === "string") {
+    let result = /\b0x[a-f0-9]{40}\b/gi.test(obj);
+    cache.set(Object(obj), result);
+    return result;
+  }
+
+  if (Array.isArray(obj)) {
+    cache.set(Object(obj), "pending");
+    for (let i in obj) {
+      let result = isContainHexAddress(obj[i], cache);
+      cache.set(Object(obj[i]), result);
+      if (result == true) {
+        cache.set(Object(obj), true);
+        return true;
+      }
+    }
+    cache.set(Object(obj), false);
+    return false;
+  }
+
+  if (typeof obj === "object") {
+    cache.set(Object(obj), "pending");
+
+    if (obj.constructor) {
+      let ignoredObjs = ["ENS"];
+      if (ignoredObjs.indexOf(obj.constructor.name) > -1) {
+        cache.set(Object(obj), false);
+        return false;
+      }
+    }
+
+    let keys = Object.keys(obj);
+    for (let k of keys) {
+      try {
+        let result = isContainHexAddress(obj[k], cache);
+        cache.set(Object(obj[k]), result);
+        if (result == true) {
+          cache.set(Object(obj), true);
+          return true;
+        }
+      } catch {
+      }
+    }
+    cache.set(Object(obj), false);
+    return false;
+  }
+
+  cache.set(Object(obj), false);
+  return false;
+}
+
+function deepFormatAnyAddress(obj, networkId, tohex = false, cache = new Map()
 ) {
   // from, to, contractAddress, contractConcrete, address, string
-  // debug("deepFormatAddress obj", obj, typeof obj);
+  // console.log("deepFormatAddress obj", obj, typeof obj);
+
   if (!obj) return obj;
   if (cache.has(obj)) return cache.get(obj);
 
@@ -269,5 +326,6 @@ module.exports = {
   formatTxHexAddress,
   deepFormatAddress: (obj, networkId) => deepFormatAnyAddress(obj, networkId),
   deepFormatHexAddress: obj => deepFormatAnyAddress(obj, 0, true),
-  repleacEthKeywords
+  repleacEthKeywords,
+  isContainHexAddress
 };

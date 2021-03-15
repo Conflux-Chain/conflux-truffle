@@ -1,5 +1,5 @@
 {
-  "name": "truffle",
+  "name": "conflux-truffle",
   "license": "MIT",
   "description": "Coflux-Truffle - Simple development framework for Ethereum",
   "author": "conflux-chain",
@@ -8,7 +8,7 @@
   "bugs": {
     "url": "https://github.com/trufflesuite/truffle/issues"
   },
-  "version": "1.0.0-beta4",
+  "version": "1.0.0-beta7",
   "main": "./build/library.bundled.js",
   "bin": {
     "cfxtruffle": "./build/cli.bundled.js"

@@ -13,12 +13,21 @@ const fse = require("fs-extra");
 const path = require("path");
 const EventEmitter = require("events");
 const spawnSync = require("child_process").spawnSync;
-const { format } = require("web3-providers-http-proxy");
-var util = require("util");
+const { format, confluxUtil } = require("web3-providers-http-proxy");
+// var util = require("util");
 
-const writer = function(obj) {
-  obj = format.deepFormatAddress(obj, this.web3.cfx.networkId);
-  return util.inspect(obj);
+function getWarpWriter(originWriter) {
+  return function (obj) {
+    if(obj && obj.constructor && obj.constructor.name && obj.constructor.name.indexOf("Error")>-1 ){
+      return originWriter(obj);
+    }
+
+    if (format.isContainHexAddress(obj) ) {
+      obj = confluxUtil.deepClone(obj);
+      obj = format.deepFormatAddress(obj, this.web3.cfx.networkId);
+    }
+    return originWriter(obj);
+  };
 };
 
 
@@ -71,8 +80,10 @@ class Console extends EventEmitter {
       this.repl = repl.start({
         prompt: "cfxtruffle(" + this.options.network + ")> ",
         eval: this.interpret.bind(this),
-        writer: writer.bind(this)
       });
+      
+      // const originWriter = this.repl.writer;
+      this.repl.writer = getWarpWriter(this.repl.writer).bind(this);
 
       let accounts;
       try {
@@ -86,7 +97,7 @@ class Console extends EventEmitter {
       this.repl.context.web3 = this.web3;
       this.repl.context.interfaceAdapter = this.interfaceAdapter;
       this.repl.context.accounts = accounts;
-      this.repl.cfx = this.web3.cfx;
+      this.repl.context.cfx = this.web3.cfx;
       this.provision();
 
       //want repl to exit when it receives an exit command
@@ -96,7 +107,7 @@ class Console extends EventEmitter {
 
       // ensure that `await`-ing this method never resolves. (we want to keep
       // the console open until it exits on its own)
-      return new Promise(() => {});
+      return new Promise(() => { });
     } catch (error) {
       this.options.logger.log(
         "Unexpected error: Cannot provision contracts while instantiating the console."
@@ -246,16 +257,15 @@ class Console extends EventEmitter {
       const expression =
         match[2] && match[2].endsWith(";")
           ? // strip off trailing ";" to prevent the expression below from erroring
-            match[2].slice(0, -1)
+          match[2].slice(0, -1)
           : match[2];
 
       const RESULT = "__await_outside_result";
 
       // Wrap the await inside an async function.
       // Strange indentation keeps column offset correct in stack traces
-      source = `(async function() { try { ${
-        assign ? `global.${RESULT} =` : "return"
-      } (
+      source = `(async function() { try { ${assign ? `global.${RESULT} =` : "return"
+        } (
   ${expression.trim()}
   ); } catch(e) { global.ERROR = e; throw e; } }())`;
 

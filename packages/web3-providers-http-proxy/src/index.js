@@ -4,6 +4,7 @@ const ethToConflux = require("./ethToConflux");
 const debug = require("debug")("provider-proxy");
 const format = require("./format");
 const confluxUtil = require("./confluxUtil");
+const util = require('util');
 
 class Web3HttpProviderProxy extends Web3HttpProvider {
   constructor(host, options) {
@@ -19,40 +20,6 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
     debug("adapted:", adapted);
     const superSend = super.send.bind(this);
 
-    const wrappedCallback = function(err, result) {
-      if (result && result.error && result.error.message) {
-        let errData = result.error.data;
-        result.error.message += `\n> raw rpc payload is: ${JSON.stringify(
-          payload
-        )}`;
-        result.error.message += errData ? `\n> error data: ${errData}` : "";
-      }
-      if (err) debug("error:", err.stack);
-      callback(err, result);
-    };
-
-    const execute = function(_adapted) {
-      // console.log("execute ", _adapted);
-      if (_adapted.adaptedSend) {
-        _adapted.adaptedSend(superSend, payload, wrappedCallback);
-        return;
-      }
-
-      debug(`\nSend RPC:`, _adapted.adaptedPayload);
-      superSend(_adapted.adaptedPayload, function(err, result) {
-        let adaptorResult = result && _adapted.adaptedOutputFn(result);
-        debug("Adaptor RPC response:", adaptorResult, "\n");
-
-        if (adaptorResult.error && adaptorResult.error.message) {
-          adaptorResult.error.message += `\n> adapted payload is: ${JSON.stringify(
-            _adapted.adaptedPayload
-          )}`;
-        }
-        // console.log("wrappedCallback",err,adaptorResult);
-        wrappedCallback(err, adaptorResult);
-      });
-    };
-
     if (adapted.then) {
       adapted.then(execute).catch(wrappedCallback);
     } else {
@@ -62,6 +29,40 @@ class Web3HttpProviderProxy extends Web3HttpProvider {
         wrappedCallback(err);
       }
     }
+
+    function wrappedCallback(err, result) {
+      if (result && result.error && result.error.message) {
+        let errData = result.error.data;
+        // result.error.message += `\n> raw rpc payload is: ${JSON.stringify(
+        //   payload
+        // )}`;
+        result.error.message += errData ? `\n> error data: ${util.inspect(errData)}` : "";
+      }
+      if (err) debug("error:", err.stack);
+      callback(err, result);
+    };
+
+    function execute(_adapted) {
+      // console.log("execute ", _adapted);
+      if (_adapted.adaptedSend) {
+        _adapted.adaptedSend(superSend, payload, wrappedCallback);
+        return;
+      }
+
+      debug(`\nsend rpc:`, _adapted.adaptedPayload);
+      superSend(_adapted.adaptedPayload, function (err, result) {
+        let adaptorResult = result && _adapted.adaptedOutputFn(result);
+        debug("adaptor rpc response:", adaptorResult, "\n");
+
+        if (adaptorResult.error && adaptorResult.error.message) {
+          adaptorResult.error.message += `\n> adapted payload is: ${JSON.stringify(
+            _adapted.adaptedPayload
+          )}`;
+        }
+        // console.trace("wrappedCallback",err,adaptorResult);
+        wrappedCallback(err, adaptorResult);
+      });
+    };
   }
 }
 

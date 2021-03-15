@@ -1,3 +1,5 @@
+const clonedeep = require('lodash.clonedeep');
+
 function setNull(object, keys) {
   for (let key of keys) {
     object[key] = null;
@@ -11,6 +13,7 @@ function delKeys(object, keys) {
 }
 
 function deepClone(obj, hash = new WeakMap()) {
+  return clonedeep(obj);
   if (Object(obj) !== obj) return obj; // primitives
   if (hash.has(obj)) return hash.get(obj); // cyclic reference
   const result =

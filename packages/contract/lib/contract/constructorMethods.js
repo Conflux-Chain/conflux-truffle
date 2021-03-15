@@ -61,6 +61,7 @@ module.exports = Contract => ({
   },
 
   async at(address) {
+    address = format.formatHexAddress(address);
     if (
       address == null ||
       typeof address !== "string" ||
