@@ -872,13 +872,6 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@confluxfans/contracts@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@confluxfans/contracts/-/contracts-0.1.1.tgz#aa8aee7377b1a081343336de2c621e13128a11f8"
-  integrity sha512-1GYHk8wp5l76PaGQ47t6A/ax43Axe6OIE9IoseMimz3tjPIsgwL/suK9fh7fzNEco41ztqY2ImDgakAQKL701g==
-  dependencies:
-    "@openzeppelin/contracts" "4.1.0"
-
 "@discoveryjs/json-ext@^0.5.0":
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/@discoveryjs/json-ext/-/json-ext-0.5.2.tgz#8f03a22a04de437254e8ce8cc84ba39689288752"
@@ -2425,11 +2418,6 @@
   integrity sha512-StASIL2lgT3TRjxv17z9pAqbnI7HGu9DrJlg3sEBFfCLaMEqp+O3IQPUF6EZtQ4xkAu2ml6kMBBCtGxjvmtmuQ==
   dependencies:
     "@types/node" ">= 8"
-
-"@openzeppelin/contracts@4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.1.0.tgz#baec89a7f5f73e3d8ea582a78f1980134b605375"
-  integrity sha512-TihZitscnaHNcZgXGj9zDLDyCqjziytB4tMCwXq0XimfWkAjBYyk5/pOsDbbwcavhlc79HhpTEpQcrMnPVa1mw==
 
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
@@ -7379,11 +7367,6 @@ conflux-address-js@^1.0.4:
   integrity sha512-RGfeX5t7evZKGtq82EbsTiCkiA2KUJ5SVosVQuMFg1zURuXdstk1GESLgt3j6fDuK+hZNXUKhtCsCS2lMLkFgA==
   dependencies:
     bigi "^1.4.2"
-
-conflux-internal-contracts@^0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/conflux-internal-contracts/-/conflux-internal-contracts-0.2.3.tgz#31950bf35fb1558f2eaf510cffe1be294c059208"
-  integrity sha512-OyNqKoyBiGeMR4Wy3M6jyPO7KE0B5NkNMpfe0QSPyuzBStZ5McXeikGg8XUCK/bPAD8/G1wOK5Vt1pifg/ziLQ==
 
 console-browserify@^1.1.0:
   version "1.2.0"

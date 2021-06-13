@@ -5,7 +5,7 @@ const format = require("./format");
 const { internalContractAddrs } = require("./constants");
 
 let cfx = undefined;
-var accounts;
+var accounts = [];
 
 
 const bridge = {
