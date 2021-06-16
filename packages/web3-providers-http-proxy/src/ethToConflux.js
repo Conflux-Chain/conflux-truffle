@@ -299,6 +299,7 @@ function ethToConflux(options) {
 
     await setNetowrkId();
     await setAccounts(options.privateKeys, cfx.networkId);
+    adaptor.accounts = accounts;
 
     // clone new one to avoid change old payload
     const oldPayload = payload;
@@ -332,7 +333,6 @@ function ethToConflux(options) {
       adaptedPayload: payload
     };
   };
-  adaptor.accounts = accounts;
   return adaptor;
 }
 
@@ -350,10 +350,20 @@ function formatPrivateKeys(privateKeys) {
   return privateKeys.map(format.formatPrivateKey);
 }
 
-function setAccounts(privateKeys, networkId) {
+async function setAccounts(privateKeys, networkId) {
   if (!accounts) {
-    accounts = formatPrivateKeys(privateKeys)
-      .map(k => new PrivateKeyAccount(k, networkId));
+    if (privateKeys) {
+      accounts = formatPrivateKeys(privateKeys)
+        .map(k => new PrivateKeyAccount(k, networkId));
+      return;
+    }
+
+    try {
+      accounts = await cfx.getAccounts();
+    }
+    catch {
+      accounts = [];
+    }
   }
 }
 

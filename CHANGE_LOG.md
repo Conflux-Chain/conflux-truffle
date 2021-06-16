@@ -1,6 +1,7 @@
 
 # Change Log
-
+## v1.0.2
+1. optmize getAccounts
 ## v1.0.0
 1. support addresses format follow cip37
 2. upgrade js-conflux-sdk version to v1.5.11

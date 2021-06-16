@@ -8,7 +8,7 @@
   "bugs": {
     "url": "https://github.com/trufflesuite/truffle/issues"
   },
-  "version": "1.0.0",
+  "version": "1.0.2",
   "main": "./build/library.bundled.js",
   "bin": {
     "cfxtruffle": "./build/cli.bundled.js"
