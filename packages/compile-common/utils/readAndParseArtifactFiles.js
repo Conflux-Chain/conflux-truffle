@@ -30,9 +30,9 @@ const readAndParseArtifactFiles = (sourceFiles, contracts_build_directory) => {
     return { file, body };
   });
 
-  for (let i = 0; i < jsonData.length; i++) {
+  jsonData.forEach(({ body, file }) => {
     try {
-      const data = JSON.parse(jsonData[i].body);
+      const data = JSON.parse(body);
 
       // In case there are artifacts from other source locations.
       if (sourceFilesArtifacts[data.sourcePath] == null) {
@@ -48,10 +48,8 @@ const readAndParseArtifactFiles = (sourceFiles, contracts_build_directory) => {
         throw error;
       }
     }
-  }
+  });
   return sourceFilesArtifacts;
 };
 
-module.exports = {
-  readAndParseArtifactFiles
-};
+module.exports = readAndParseArtifactFiles;
